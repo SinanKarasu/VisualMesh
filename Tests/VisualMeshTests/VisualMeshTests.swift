@@ -179,4 +179,43 @@ struct VisualMeshTests {
         #expect(example.board.nodes.map { $0.subgraph?.designator } == ["U100", "U101"])
         #expect(example.board.edges.count == 1)
     }
+
+    @Test func ateAdapterWorkflowKeepsThreeStableConfigurationStages() throws {
+        for path in ATEAdapterPath.allCases {
+            let example = try ATEAdapterHierarchyExample.make(path: path)
+
+            #expect(example.library.definitions.count == 3)
+            #expect(example.configuration.nodes.count == 3)
+            #expect(example.configuration.edges.count == 2)
+            #expect(
+                example.configuration.nodes.compactMap(\.payload.workflowStage) == [1, 2, 3]
+            )
+            #expect(example.configuration.nodes.allSatisfy { $0.subgraph != nil })
+        }
+    }
+
+    @Test func cardAndLRUPathsShareATEButSelectDifferentAdapterDefinitions() throws {
+        let lru = try ATEAdapterHierarchyExample.make(path: .lru)
+        let card = try ATEAdapterHierarchyExample.make(path: .card)
+        let lruATE = try #require(lru.library.definition(id: lru.ateDefinitionID))
+        let cardATE = try #require(card.library.definition(id: card.ateDefinitionID))
+        let lruAuxiliary = try #require(
+            lru.library.definition(id: lru.auxiliaryDefinitionID)
+        )
+        let cardAuxiliary = try #require(
+            card.library.definition(id: card.auxiliaryDefinitionID)
+        )
+        let lruFixture = try #require(
+            lru.library.definition(id: lru.uutAdapterDefinitionID)
+        )
+        let cardFixture = try #require(
+            card.library.definition(id: card.uutAdapterDefinitionID)
+        )
+
+        #expect(lruATE.name == cardATE.name)
+        #expect(lruAuxiliary.name == "StandardJumperAdapter")
+        #expect(cardAuxiliary.name == "StandardAuxiliaryPatchPanelAdapter")
+        #expect(lruFixture.mesh.nodes.count == 1)
+        #expect(cardFixture.mesh.nodes.map(\.payload.kind) == [.standardDTUFixture, .loadBoard])
+    }
 }

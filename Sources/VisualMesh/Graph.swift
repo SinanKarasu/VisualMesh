@@ -9,11 +9,11 @@ public enum PortDirection: String, Codable, Sendable {
     /// necessarily directed even though processing graphs usually are.
     case bidirectional
 
-    var canSource: Bool {
+    public var canSource: Bool {
         self == .output || self == .bidirectional
     }
 
-    var canTarget: Bool {
+    public var canTarget: Bool {
         self == .input || self == .bidirectional
     }
 }
@@ -148,5 +148,46 @@ public final class Mesh<NodePayload, EdgePayload> {
     public func removeNode(id: UUID) {
         nodes.removeAll { $0.id == id }
         edges.removeAll { $0.sourceNodeID == id || $0.targetNodeID == id }
+    }
+}
+
+// MARK: - Lookups and renderer-neutral connection planning
+
+public extension GraphNode {
+    func port(id: UUID) -> GraphPort? {
+        ports.first { $0.id == id }
+    }
+}
+
+public extension Mesh {
+    func node(id: UUID) -> GraphNode<NodePayload>? {
+        nodes.first { $0.id == id }
+    }
+
+    func edge(id: UUID) -> GraphEdge<EdgePayload>? {
+        edges.first { $0.id == id }
+    }
+
+    func port(at endpoint: GraphEndpoint) -> GraphPort? {
+        node(id: endpoint.nodeID)?.port(id: endpoint.portID)
+    }
+
+    /// Orders two endpoints picked by a user, in either order, into a
+    /// source and target that `connect` accepts. Returns `nil` when neither
+    /// order is valid. Renderers (2D, spatial, or none) share this rule.
+    func orientedConnection(
+        between first: GraphEndpoint,
+        and second: GraphEndpoint
+    ) -> (source: GraphEndpoint, target: GraphEndpoint)? {
+        guard first != second,
+              let a = port(at: first),
+              let b = port(at: second) else { return nil }
+        if a.direction.canSource, b.direction.canTarget {
+            return (first, second)
+        }
+        if b.direction.canSource, a.direction.canTarget {
+            return (second, first)
+        }
+        return nil
     }
 }

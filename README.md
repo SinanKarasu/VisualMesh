@@ -55,3 +55,17 @@ MeshCanvas(mesh: mesh, layout: layout, state: canvasState) { node in
 ```sh
 swift test
 ```
+
+## Acknowledgements
+
+VisualMesh began with Warren Burton's tutorial
+[Creating a Mind-Map UI in SwiftUI](https://forums.kodeco.com/t/creating-a-mind-map-ui-in-swiftui-raywenderlich-com/102548)
+(raywenderlich.com, now Kodeco, March 2020). Its mesh of nodes and edges on a
+pannable, zoomable surface, with the model kept separate from the views that
+draw it, inspired VisuSig's first node editor in 2021–22.
+
+That editor has since been replaced, and replacing it is where most of the
+learning happened. What came out of it is what VisualMesh is now: a graph
+generalized over any node and edge payload, with typed ports and reusable
+definitions, and durable payloads kept apart from the live runtimes that act
+on them. No code from the tutorial remains; the inspiration does.

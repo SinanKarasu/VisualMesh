@@ -34,6 +34,7 @@ public struct MeshCanvas<NodePayload, EdgePayload, NodeContent: View>: View {
     private var canvasMenuBuilder: ((MeshCanvasLocation) -> AnyView)?
     private var edgeAccessoryBuilder: ((GraphEdge<EdgePayload>) -> AnyView?)?
     private var connectAction: ((GraphEndpoint, GraphEndpoint) -> Void)?
+    private var refusedAction: ((GraphEndpoint, GraphEndpoint) -> Void)?
     private var deleteAction: ((Set<UUID>, UUID?) -> Void)?
     private var movedAction: ((Set<UUID>) -> Void)?
     private var isReadOnly = false
@@ -232,9 +233,14 @@ public struct MeshCanvas<NodePayload, EdgePayload, NodeContent: View>: View {
                 switch state.drag {
                 case .wire?:
                     if let end = scene.hitPort(value.location),
-                       let picked = state.apply(.completeConnection(end)),
-                       let oriented = mesh.orientedConnection(between: picked.0, and: picked.1) {
-                        connectAction?(oriented.source, oriented.target)
+                       let picked = state.apply(.completeConnection(end)) {
+                        if let oriented = mesh.orientedConnection(between: picked.0, and: picked.1) {
+                            connectAction?(oriented.source, oriented.target)
+                        } else {
+                            // Two ports that can't be joined: say so rather than
+                            // silently dropping the wire.
+                            refusedAction?(picked.0, picked.1)
+                        }
                     } else {
                         state.apply(.cancel)
                     }
@@ -369,6 +375,15 @@ public extension MeshCanvas {
     func onConnect(_ action: @escaping (_ source: GraphEndpoint, _ target: GraphEndpoint) -> Void) -> Self {
         var copy = self
         copy.connectAction = action
+        return copy
+    }
+
+    /// Called when the user draws a wire between two ports that can't be
+    /// connected (two outputs, two inputs, or different signals), in the
+    /// order the user picked them, so the host can explain why.
+    func onConnectionRefused(_ action: @escaping (_ first: GraphEndpoint, _ second: GraphEndpoint) -> Void) -> Self {
+        var copy = self
+        copy.refusedAction = action
         return copy
     }
 

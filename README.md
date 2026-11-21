@@ -24,8 +24,9 @@ Platforms: macOS 14+, visionOS 1+.
   durable and serializable; keep live runtime objects (audio engines, Audio
   Units, instrument connections) in host adapters keyed by stable IDs.
 - **The canvas reports, the host decides.** `MeshCanvas` edits layout and
-  view state itself, but reports connections and deletions through
-  `onConnect` and `onDeleteSelection`, so a host with a running engine applies
+  view state itself, but reports connections, refused connections and
+  deletions through `onConnect`, `onConnectionRefused` and
+  `onDeleteSelection`, so a host with a running engine applies
   graph edits in its own order.
 - **Input is intent-based.** Mouse, trackpad, and spatial input all drive
   `MeshCanvasState` through `MeshInteractionIntent`.

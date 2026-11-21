@@ -28,6 +28,7 @@ public struct MeshCanvas<NodePayload, EdgePayload, NodeContent: View>: View {
 
     private var tintForNode: (GraphNode<NodePayload>) -> Color = { _ in Color(white: 0.32) }
     private var tintForEdge: (GraphEdge<EdgePayload>) -> Color = { _ in .cyan }
+    private var tintForPort: (GraphPort) -> Color = MeshCanvas.defaultPortTint
     private var nodeMenuBuilder: ((GraphNode<NodePayload>) -> AnyView)?
     private var edgeMenuBuilder: ((GraphEdge<EdgePayload>) -> AnyView)?
     private var canvasMenuBuilder: ((MeshCanvasLocation) -> AnyView)?
@@ -178,6 +179,7 @@ public struct MeshCanvas<NodePayload, EdgePayload, NodeContent: View>: View {
             node: node,
             geometry: geometry,
             tint: tintForNode(node),
+            portTint: tintForPort,
             isSelected: state.isSelected(nodeID: node.id),
             highlightedPortID: highlighted,
             pendingPortID: pending,
@@ -309,6 +311,17 @@ public extension MeshCanvas {
         var copy = self
         copy.tintForNode = tint
         return copy
+    }
+
+    /// Colour of a port's dot, for example by its signal.
+    func portTint(_ tint: @escaping (GraphPort) -> Color) -> Self {
+        var copy = self
+        copy.tintForPort = tint
+        return copy
+    }
+
+    nonisolated static func defaultPortTint(_ port: GraphPort) -> Color {
+        port.direction == .bidirectional ? .orange : .cyan
     }
 
     func edgeTint(_ tint: @escaping (GraphEdge<EdgePayload>) -> Color) -> Self {

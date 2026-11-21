@@ -18,15 +18,39 @@ public enum PortDirection: String, Codable, Sendable {
     }
 }
 
+/// What a port carries, such as audio or MIDI. Open and string-based so each
+/// domain names its own kinds without changing VisualMesh.
+public struct PortSignal: RawRepresentable, Hashable, Codable, Sendable {
+    public let rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+}
+
 public struct GraphPort: Identifiable, Hashable, Codable, Sendable {
     public let id: UUID
     public var name: String
     public var direction: PortDirection
+    /// What the port carries. Two ports with different signals cannot be
+    /// connected; a port without one connects to any signal.
+    public var signal: PortSignal?
 
-    public init(id: UUID = UUID(), name: String, direction: PortDirection) {
+    public init(id: UUID = UUID(), name: String, direction: PortDirection, signal: PortSignal? = nil) {
         self.id = id
         self.name = name
         self.direction = direction
+        self.signal = signal
+    }
+
+    /// Whether the two ports carry compatible signals.
+    public func carriesSameSignal(as other: GraphPort) -> Bool {
+        guard let signal, let otherSignal = other.signal else { return true }
+        return signal == otherSignal
     }
 }
 
@@ -87,6 +111,7 @@ public enum MeshConnectionError: Error, Equatable {
     case sourcePortMissing
     case targetPortMissing
     case incompatiblePortDirections
+    case incompatibleSignals
     case duplicateConnection
 }
 
@@ -123,6 +148,9 @@ public final class Mesh<NodePayload, EdgePayload> {
         }
         guard sourcePort.direction.canSource, targetPort.direction.canTarget else {
             throw MeshConnectionError.incompatiblePortDirections
+        }
+        guard sourcePort.carriesSameSignal(as: targetPort) else {
+            throw MeshConnectionError.incompatibleSignals
         }
         guard !edges.contains(where: {
             $0.sourcePortID == sourcePortID && $0.targetPortID == targetPortID
@@ -181,7 +209,8 @@ public extension Mesh {
     ) -> (source: GraphEndpoint, target: GraphEndpoint)? {
         guard first != second,
               let a = port(at: first),
-              let b = port(at: second) else { return nil }
+              let b = port(at: second),
+              a.carriesSameSignal(as: b) else { return nil }
         if a.direction.canSource, b.direction.canTarget {
             return (first, second)
         }

@@ -5,6 +5,7 @@ struct MeshNodeChrome<NodePayload, Content: View>: View {
     let node: GraphNode<NodePayload>
     let geometry: MeshCanvasGeometry
     let tint: Color
+    let portTint: (GraphPort) -> Color
     let isSelected: Bool
     let highlightedPortID: UUID?
     let pendingPortID: UUID?
@@ -39,6 +40,7 @@ struct MeshNodeChrome<NodePayload, Content: View>: View {
             ForEach(node.ports) { port in
                 MeshPortView(
                     port: port,
+                    color: portTint(port),
                     diameter: geometry.style.portDiameter,
                     labelAbove: geometry.isTopPort(port),
                     isHighlighted: port.id == highlightedPortID,
@@ -55,6 +57,7 @@ struct MeshNodeChrome<NodePayload, Content: View>: View {
 
 struct MeshPortView: View {
     let port: GraphPort
+    let color: Color
     let diameter: CGFloat
     let labelAbove: Bool
     let isHighlighted: Bool
@@ -62,7 +65,7 @@ struct MeshPortView: View {
 
     var body: some View {
         Circle()
-            .fill(port.direction == .bidirectional ? Color.orange : Color.cyan)
+            .fill(color)
             .overlay(
                 Circle().stroke(
                     isPending ? Color.red : (isHighlighted ? Color.yellow : Color.black.opacity(0.6)),

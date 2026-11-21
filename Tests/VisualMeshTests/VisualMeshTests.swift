@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import VisualMesh
 import VisualMeshExamples
@@ -217,5 +218,35 @@ struct VisualMeshTests {
         #expect(cardAuxiliary.name == "StandardAuxiliaryPatchPanelAdapter")
         #expect(lruFixture.mesh.nodes.count == 1)
         #expect(cardFixture.mesh.nodes.map(\.payload.kind) == [.standardDTUFixture, .loadBoard])
+    }
+
+    @Test func connectionRefusesDifferentSignals() throws {
+        let mesh = Mesh<String, Int>()
+        let audio = PortSignal("audio"), midi = PortSignal("midi")
+        let source = GraphNode(title: "Keys", payload: "", ports: [
+            GraphPort(name: "MIDI Out", direction: .output, signal: midi),
+            GraphPort(name: "Any Out", direction: .output),
+        ])
+        let target = GraphNode(title: "Effect", payload: "", ports: [GraphPort(name: "In", direction: .input, signal: audio)])
+        mesh.addNode(source)
+        mesh.addNode(target)
+
+        #expect(throws: MeshConnectionError.incompatibleSignals) {
+            try mesh.connect(sourceNodeID: source.id, sourcePortID: source.ports[0].id,
+                             targetNodeID: target.id, targetPortID: target.ports[0].id, payload: 0)
+        }
+        #expect(mesh.orientedConnection(
+            between: GraphEndpoint(nodeID: source.id, portID: source.ports[0].id),
+            and: GraphEndpoint(nodeID: target.id, portID: target.ports[0].id)) == nil)
+        // A port without a signal still connects to anything.
+        try mesh.connect(sourceNodeID: source.id, sourcePortID: source.ports[1].id,
+                         targetNodeID: target.id, targetPortID: target.ports[0].id, payload: 0)
+        #expect(mesh.edges.count == 1)
+    }
+
+    @Test func portsWithoutSignalDecodeFromOlderData() throws {
+        let old = #"{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","name":"In","direction":"input"}"#
+        let port = try JSONDecoder().decode(GraphPort.self, from: Data(old.utf8))
+        #expect(port.signal == nil && port.name == "In")
     }
 }

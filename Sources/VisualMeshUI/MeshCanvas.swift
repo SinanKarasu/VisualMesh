@@ -223,7 +223,9 @@ public struct MeshCanvas<NodePayload, EdgePayload, NodeContent: View>: View {
                         layout.setPosition(p, for: id)
                     }
                 case .wire?:
-                    state.wireEnd = value.location
+                    let target = scene.hitPort(value.location)
+                    state.apply(.hover(target.map { .port($0) }))
+                    state.wireEnd = target.flatMap { scene.port($0)?.center } ?? value.location
                 case .idle?, nil:
                     break
                 }
@@ -258,6 +260,9 @@ public struct MeshCanvas<NodePayload, EdgePayload, NodeContent: View>: View {
                     break
                 }
                 state.drag = nil
+                #if os(iOS)
+                state.apply(.hover(nil))
+                #endif
             }
     }
 

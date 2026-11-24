@@ -72,4 +72,39 @@ struct VisualMeshUITests {
         state.forget(nodeIDs: [id])
         #expect(state.selectedNodeIDs.isEmpty)
     }
+    @Test func touchPortHitAreaStaysUsableWhenZoomedOutAndPanned() {
+        let (mesh, a, _) = twoNodeMesh()
+        let layout = MeshLayout2D(positions: [a.id: CGPoint(x: 120, y: -80)])
+        var style = MeshCanvasStyle()
+        style.minimumPortHitDiameter = 44
+        let endpoint = GraphEndpoint(nodeID: a.id, portID: a.ports[0].id)
+        for zoom: CGFloat in [0.25, 0.5, 1] {
+            let scene = MeshCanvasScene(mesh: mesh, layout: layout,
+                                        geometry: MeshCanvasGeometry(style: style),
+                                        origin: CGPoint(x: 333, y: 217), zoom: zoom)
+            let center = scene.port(endpoint)!.center
+            #expect(scene.hitPort(CGPoint(x: center.x + 21, y: center.y)) == endpoint)
+            #expect(scene.hitPort(CGPoint(x: center.x + 23, y: center.y)) == nil)
+        }
+    }
+
+    @Test func overlappingHitAreasChooseNearestPortAndTopmostOnTies() {
+        let (mesh, a, b) = twoNodeMesh()
+        let layout = MeshLayout2D()
+        var style = MeshCanvasStyle()
+        style.minimumPortHitDiameter = 44
+        let geometry = MeshCanvasGeometry(style: style)
+        // Give the two ports the same vertical position and nearby centres.
+        b.ports[0].direction = .output
+        layout.setPosition(CGPoint(x: 30, y: 0), for: b.id)
+        let scene = MeshCanvasScene(mesh: mesh, layout: layout, geometry: geometry,
+                                    origin: .zero, zoom: 0.5)
+        let first = GraphEndpoint(nodeID: a.id, portID: a.ports[0].id)
+        let second = GraphEndpoint(nodeID: b.id, portID: b.ports[0].id)
+        let center = scene.port(first)!.center
+        #expect(scene.hitPort(CGPoint(x: center.x + 1, y: center.y)) == first)
+        #expect(scene.hitPort(CGPoint(x: center.x + 14, y: center.y)) == second)
+        #expect(scene.hitPort(CGPoint(x: center.x + 7.5, y: center.y)) == second)
+    }
+
 }

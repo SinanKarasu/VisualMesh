@@ -57,17 +57,22 @@ struct MeshCanvasScene<NodePayload, EdgePayload> {
     // MARK: Hit testing (screen coordinates; topmost first)
 
     func hitPort(_ p: CGPoint) -> GraphEndpoint? {
-        let radius = geometry.style.portDiameter * zoom / 2 + 4
+        let radius = max(geometry.style.portDiameter * zoom / 2 + 4,
+                         geometry.style.minimumPortHitDiameter / 2)
+        var closest: GraphEndpoint?
+        var closestDistance = CGFloat.infinity
         for node in mesh.nodes.reversed() {
             let position = layout.position(of: node.id)
             for port in node.ports {
                 let center = screen(geometry.portPosition(port, in: node, at: position))
-                if MeshCanvasGeometry.distance(center, p) <= radius {
-                    return GraphEndpoint(nodeID: node.id, portID: port.id)
+                let distance = MeshCanvasGeometry.distance(center, p)
+                if distance <= radius, distance < closestDistance {
+                    closest = GraphEndpoint(nodeID: node.id, portID: port.id)
+                    closestDistance = distance
                 }
             }
         }
-        return nil
+        return closest
     }
 
     func hitNode(_ p: CGPoint) -> UUID? {

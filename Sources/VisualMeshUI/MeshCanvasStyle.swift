@@ -3,10 +3,16 @@ import Foundation
 import VisualMesh
 
 /// Sizes and behaviour of a `MeshCanvas`. All lengths are in mesh units
-/// (points at zoom 1).
+/// (points at zoom 1), except the explicitly screen-space hit diameter.
 public struct MeshCanvasStyle: Sendable {
     public var minimumNodeSize = CGSize(width: 180, height: 60)
     public var portDiameter: CGFloat = 26
+    /// Minimum hit diameter in screen points, independent of canvas zoom.
+    #if os(iOS)
+    public var minimumPortHitDiameter: CGFloat = 44
+    #else
+    public var minimumPortHitDiameter: CGFloat = 0
+    #endif
     public var portSpacing: CGFloat = 40
     public var gridSpacing: CGFloat = 30
     public var snapToGrid = false
